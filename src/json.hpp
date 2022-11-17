@@ -119,7 +119,7 @@ public:
     if (end_pos < json_str.size() && (json_str[end_pos] == 'e' || json_str[end_pos] == 'E')) {
       ++end_pos;
       if (end_pos == json_str.size() || (json_str[end_pos] != '+' && json_str[end_pos] != '-' &&
-                                          !std::isdigit(json_str[end_pos]))) {
+                                         !std::isdigit(json_str[end_pos]))) {
         return std::unexpected{JsonError::parse_invalid_value};
       }
       ++end_pos;
@@ -128,7 +128,7 @@ public:
       }
     }
     try {
-      auto number = std::stod(std::string{json_str.substr(pos, end_pos - pos)});
+      const auto number = std::stod(std::string{json_str.substr(pos, end_pos - pos)});
       pos = end_pos;
       return number;
     } catch (const std::out_of_range&) {
@@ -144,7 +144,7 @@ public:
     }
     ++pos;
     std::string str;
-    static auto escape_mappping = std::unordered_map<char, char>{
+    static const auto escape_mappping = std::unordered_map<char, char>{
         {'"', '"'},  {'\\', '\\'}, {'/', '/'},  {'b', '\b'},
         {'f', '\f'}, {'n', '\n'},  {'r', '\r'}, {'t', '\t'},
     };
@@ -154,7 +154,7 @@ public:
         if (pos == json_str.size()) {
           return std::unexpected{JsonError::parse_invalid_value};
         }
-        if (auto it = escape_mappping.find(json_str[pos]); it != escape_mappping.end()) {
+        if (const auto it = escape_mappping.find(json_str[pos]); it != escape_mappping.end()) {
           str += it->second;
         } else if (json_str[pos] == 'u') {
           str += parse_unicode();
@@ -177,7 +177,7 @@ public:
     if (pos + 4 >= json_str.size()) {
       return '\0';
     }
-    auto hex_str = std::string{json_str.substr(pos + 1, 4)};
+    const auto hex_str = std::string{json_str.substr(pos + 1, 4)};
     pos += 4;
     return static_cast<char>(std::stoi(hex_str, nullptr, 16));
   }
@@ -189,7 +189,7 @@ public:
     ++pos;
     Array array;
     while (pos < json_str.size() && json_str[pos] != ']') {
-      auto value = parse_value();
+      const auto value = parse_value();
       if (!value) {
         return std::unexpected{value.error()};
       }
@@ -225,7 +225,7 @@ public:
         return std::unexpected{JsonError::parse_invalid_value};
       }
       ++pos;
-      auto value = parse_value();
+      const auto value = parse_value();
       if (!value) {
         return std::unexpected{value.error()};
       }
@@ -309,12 +309,12 @@ public:
   auto generate_string(const String& str) -> std::string {
     std::string json_str;
     json_str += '"';
-    static auto escape_map = std::unordered_map<char, std::string>{
+    static const auto escape_map = std::unordered_map<char, std::string>{
         {'"', "\\\""}, {'\\', "\\\\"}, {'/', "\\/"},  {'\b', "\\b"},
         {'\f', "\\f"}, {'\n', "\\n"},  {'\r', "\\r"}, {'\t', "\\t"}};
     for (const auto& c : str) {
-      if (escape_map.find(c) != escape_map.end()) {
-        json_str += escape_map[c];
+      if (const auto it = escape_map.find(c); it != escape_map.end()) {
+        json_str += it->second;
       } else if (c < 0x20) {
         json_str += "\\u";
         json_str += std::string(4 - std::to_string(static_cast<int>(c)).size(), '0');

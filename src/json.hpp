@@ -24,7 +24,7 @@ using Value = std::variant<Null, Boolean, Integer, Float, String, Array, Object>
 
 struct Node {
   Value value;
-  Node(Value value) : value(value) {}
+  Node(Value _value) : value(_value) {}
   Node() : value(Null{}) {}
   auto operator<=>(const Node&) const = default;
 };
@@ -38,67 +38,67 @@ enum class JsonError {
 
 class JsonParser {
 public:
-  std::string_view json_str_;
-  size_t pos_ = 0;
+  std::string_view json_str;
+  size_t pos = 0;
 
   auto parse_whitespace() -> void {
-    while (pos_ < json_str_.size() && std::isspace(json_str_[pos_])) {
-      ++pos_;
+    while (pos < json_str.size() && std::isspace(json_str[pos])) {
+      ++pos;
     }
   }
 
   auto parse_null() -> std::expected<Value, JsonError> {
-    if (json_str_.substr(pos_, 4) == "null") {
-      pos_ += 4;
+    if (json_str.substr(pos, 4) == "null") {
+      pos += 4;
       return Null{};
     }
     return std::unexpected{JsonError::parse_invalid_value};
   }
 
   auto parse_true() -> std::expected<Value, JsonError> {
-    if (json_str_.substr(pos_, 4) == "true") {
-      pos_ += 4;
+    if (json_str.substr(pos, 4) == "true") {
+      pos += 4;
       return true;
     }
     return std::unexpected{JsonError::parse_invalid_value};
   }
 
   auto parse_false() -> std::expected<Value, JsonError> {
-    if (json_str_.substr(pos_, 5) == "false") {
-      pos_ += 5;
+    if (json_str.substr(pos, 5) == "false") {
+      pos += 5;
       return false;
     }
     return std::unexpected{JsonError::parse_invalid_value};
   }
 
   auto parse_number() -> std::expected<Value, JsonError> {
-    if (pos_ == json_str_.size()) {
+    if (pos == json_str.size()) {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    size_t end_pos = pos_;
-    if (json_str_[end_pos] == '-') {
+    size_t end_pos = pos;
+    if (json_str[end_pos] == '-') {
       ++end_pos;
     }
-    if (end_pos == json_str_.size()) {
+    if (end_pos == json_str.size()) {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    if (json_str_[end_pos] == '0') {
+    if (json_str[end_pos] == '0') {
       ++end_pos;
     } else {
-      if (!std::isdigit(json_str_[end_pos])) {
+      if (!std::isdigit(json_str[end_pos])) {
         return std::unexpected{JsonError::parse_invalid_value};
       }
-      while (end_pos < json_str_.size() && std::isdigit(json_str_[end_pos])) {
+      while (end_pos < json_str.size() && std::isdigit(json_str[end_pos])) {
         ++end_pos;
       }
     }
 
     // handle interger
-    if (end_pos == json_str_.size() || json_str_[end_pos] != '.' || json_str_[end_pos] != 'e' ||
-        json_str_[end_pos] != 'E') {
+    if (end_pos == json_str.size() || json_str[end_pos] != '.' || json_str[end_pos] != 'e' ||
+        json_str[end_pos] != 'E') {
       try {
-        auto number = std::stoll(std::string{json_str_.substr(pos_, end_pos - pos_)});
-        pos_ = end_pos;
+        auto number = std::stoll(std::string{json_str.substr(pos, end_pos - pos)});
+        pos = end_pos;
         return number;
       } catch (const std::out_of_range&) {
         return std::unexpected{JsonError::parse_number_too_big};
@@ -107,29 +107,29 @@ public:
       }
     }
 
-    if (end_pos < json_str_.size() && json_str_[end_pos] == '.') {
+    if (end_pos < json_str.size() && json_str[end_pos] == '.') {
       ++end_pos;
-      if (end_pos == json_str_.size() || !std::isdigit(json_str_[end_pos])) {
+      if (end_pos == json_str.size() || !std::isdigit(json_str[end_pos])) {
         return std::unexpected{JsonError::parse_invalid_value};
       }
-      while (end_pos < json_str_.size() && std::isdigit(json_str_[end_pos])) {
+      while (end_pos < json_str.size() && std::isdigit(json_str[end_pos])) {
         ++end_pos;
       }
     }
-    if (end_pos < json_str_.size() && (json_str_[end_pos] == 'e' || json_str_[end_pos] == 'E')) {
+    if (end_pos < json_str.size() && (json_str[end_pos] == 'e' || json_str[end_pos] == 'E')) {
       ++end_pos;
-      if (end_pos == json_str_.size() || (json_str_[end_pos] != '+' && json_str_[end_pos] != '-' &&
-                                          !std::isdigit(json_str_[end_pos]))) {
+      if (end_pos == json_str.size() || (json_str[end_pos] != '+' && json_str[end_pos] != '-' &&
+                                          !std::isdigit(json_str[end_pos]))) {
         return std::unexpected{JsonError::parse_invalid_value};
       }
       ++end_pos;
-      while (end_pos < json_str_.size() && std::isdigit(json_str_[end_pos])) {
+      while (end_pos < json_str.size() && std::isdigit(json_str[end_pos])) {
         ++end_pos;
       }
     }
     try {
-      auto number = std::stod(std::string{json_str_.substr(pos_, end_pos - pos_)});
-      pos_ = end_pos;
+      auto number = std::stod(std::string{json_str.substr(pos, end_pos - pos)});
+      pos = end_pos;
       return number;
     } catch (const std::out_of_range&) {
       return std::unexpected{JsonError::parse_number_too_big};
@@ -139,80 +139,80 @@ public:
   }
 
   auto parse_string() -> std::expected<Value, JsonError> {
-    if (pos_ == json_str_.size() || json_str_[pos_] != '"') {
+    if (pos == json_str.size() || json_str[pos] != '"') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     std::string str;
     static auto escape_mappping = std::unordered_map<char, char>{
         {'"', '"'},  {'\\', '\\'}, {'/', '/'},  {'b', '\b'},
         {'f', '\f'}, {'n', '\n'},  {'r', '\r'}, {'t', '\t'},
     };
-    while (pos_ < json_str_.size() && json_str_[pos_] != '"') {
-      if (json_str_[pos_] == '\\') {
-        ++pos_;
-        if (pos_ == json_str_.size()) {
+    while (pos < json_str.size() && json_str[pos] != '"') {
+      if (json_str[pos] == '\\') {
+        ++pos;
+        if (pos == json_str.size()) {
           return std::unexpected{JsonError::parse_invalid_value};
         }
-        if (auto it = escape_mappping.find(json_str_[pos_]); it != escape_mappping.end()) {
+        if (auto it = escape_mappping.find(json_str[pos]); it != escape_mappping.end()) {
           str += it->second;
-        } else if (json_str_[pos_] == 'u') {
+        } else if (json_str[pos] == 'u') {
           str += parse_unicode();
         } else {
           return std::unexpected{JsonError::parse_invalid_value};
         }
       } else {
-        str += json_str_[pos_];
+        str += json_str[pos];
       }
-      ++pos_;
+      ++pos;
     }
-    if (pos_ == json_str_.size() || json_str_[pos_] != '"') {
+    if (pos == json_str.size() || json_str[pos] != '"') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     return str;
   }
 
   auto parse_unicode() -> char {
-    if (pos_ + 4 >= json_str_.size()) {
+    if (pos + 4 >= json_str.size()) {
       return '\0';
     }
-    auto hex_str = std::string{json_str_.substr(pos_ + 1, 4)};
-    pos_ += 4;
+    auto hex_str = std::string{json_str.substr(pos + 1, 4)};
+    pos += 4;
     return static_cast<char>(std::stoi(hex_str, nullptr, 16));
   }
 
   auto parse_array() -> std::expected<Value, JsonError> {
-    if (pos_ == json_str_.size() || json_str_[pos_] != '[') {
+    if (pos == json_str.size() || json_str[pos] != '[') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     Array array;
-    while (pos_ < json_str_.size() && json_str_[pos_] != ']') {
+    while (pos < json_str.size() && json_str[pos] != ']') {
       auto value = parse_value();
       if (!value) {
         return std::unexpected{value.error()};
       }
       array.push_back(Node{value.value()});
       parse_whitespace();
-      if (pos_ < json_str_.size() && json_str_[pos_] == ',') {
-        ++pos_;
+      if (pos < json_str.size() && json_str[pos] == ',') {
+        ++pos;
       }
     }
-    if (pos_ == json_str_.size() || json_str_[pos_] != ']') {
+    if (pos == json_str.size() || json_str[pos] != ']') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     return array;
   }
 
   auto parse_object() -> std::expected<Value, JsonError> {
-    if (pos_ == json_str_.size() || json_str_[pos_] != '{') {
+    if (pos == json_str.size() || json_str[pos] != '{') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     Object object;
-    while (pos_ < json_str_.size() && json_str_[pos_] != '}') {
+    while (pos < json_str.size() && json_str[pos] != '}') {
       const auto key = parse_string();
       if (!key) {
         return std::unexpected{key.error()};
@@ -221,32 +221,32 @@ public:
         return std::unexpected{JsonError::parse_invalid_value};
       }
       parse_whitespace();
-      if (pos_ == json_str_.size() || json_str_[pos_] != ':') {
+      if (pos == json_str.size() || json_str[pos] != ':') {
         return std::unexpected{JsonError::parse_invalid_value};
       }
-      ++pos_;
+      ++pos;
       auto value = parse_value();
       if (!value) {
         return std::unexpected{value.error()};
       }
       object.emplace(std::get<std::string>(key.value()), Node{value.value()});
       parse_whitespace();
-      if (pos_ < json_str_.size() && json_str_[pos_] == ',') {
-        ++pos_;
+      if (pos < json_str.size() && json_str[pos] == ',') {
+        ++pos;
       }
     }
-    if (pos_ == json_str_.size() || json_str_[pos_] != '}') {
+    if (pos == json_str.size() || json_str[pos] != '}') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
-    ++pos_;
+    ++pos;
     return object;
   }
 
   auto parse_value() -> std::expected<Value, JsonError> {
-    if (pos_ == json_str_.size()) {
+    if (pos == json_str.size()) {
       return std::unexpected{JsonError::parse_expect_value};
     }
-    switch (json_str_[pos_]) {
+    switch (json_str[pos]) {
       case 'n':
         return parse_null();
       case 't':
@@ -271,7 +271,7 @@ public:
       return std::unexpected{value.error()};
     }
     parse_whitespace();
-    if (pos_ != json_str_.size()) {
+    if (pos != json_str.size()) {
       return std::unexpected{JsonError::parse_root_not_singular};
     }
     return Node{*value};

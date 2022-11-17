@@ -5,6 +5,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -143,7 +144,7 @@ public:
     }
     ++pos_;
     std::string str;
-    static auto escape_mappping = std::map<char, char>{
+    static auto escape_mappping = std::unordered_map<char, char>{
         {'"', '"'},  {'\\', '\\'}, {'/', '/'},  {'b', '\b'},
         {'f', '\f'}, {'n', '\n'},  {'r', '\r'}, {'t', '\t'},
     };
@@ -308,9 +309,9 @@ public:
   auto generate_string(const String& str) -> std::string {
     std::string json_str;
     json_str += '"';
-    static auto escape_map =
-        std::map<char, std::string>{{'"', "\\\""}, {'\\', "\\\\"}, {'/', "\\/"},  {'\b', "\\b"},
-                                    {'\f', "\\f"}, {'\n', "\\n"},  {'\r', "\\r"}, {'\t', "\\t"}};
+    static auto escape_map = std::unordered_map<char, std::string>{
+        {'"', "\\\""}, {'\\', "\\\\"}, {'/', "\\/"},  {'\b', "\\b"},
+        {'\f', "\\f"}, {'\n', "\\n"},  {'\r', "\\r"}, {'\t', "\\t"}};
     for (const auto& c : str) {
       if (escape_map.find(c) != escape_map.end()) {
         json_str += escape_map[c];

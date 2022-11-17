@@ -200,6 +200,26 @@ void test_parse_complex() {
   assert(std::get<json::Object>((*result).value) == expected);
 }
 
+void test_parse_complex_miss_comma_or_square_bracket() {
+  auto result = json::json_parse(R"(
+    {
+      "n": null,
+      "t": true,
+      "f": false,
+      "i": 123,
+      "s": "abc",
+      "a": [1, 2, 3
+      "o": {
+        "1": 1,
+        "2": 2,
+        "3": 3
+      }
+    }
+  )");
+  assert(!result);
+  assert(result.error() == json::JsonError::parse_invalid_value);
+}
+
 void test_parse() {
   test_parse_null();
   test_parse_true();

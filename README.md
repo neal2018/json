@@ -12,7 +12,7 @@ A lightweight json parser and generator in modern C++. It is header-only and has
 #include "json.hpp"
 
 int main() {
-  std::string json_str = R"(
+  std::string_view json_str = R"(
         {
             "name": "json",
             "author": "neal",

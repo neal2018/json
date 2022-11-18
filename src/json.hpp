@@ -27,6 +27,18 @@ struct Node {
   Node(Value _value) : value(_value) {}
   Node() : value(Null{}) {}
   auto operator<=>(const Node&) const = default;
+  auto operator[](const std::string& key) const {
+    if (auto* object = std::get_if<Object>(&value)) {
+      return object->at(key);
+    }
+    throw std::runtime_error("not an object");
+  }
+  auto operator[](size_t index) const {
+    if (auto* array = std::get_if<Array>(&value)) {
+      return array->at(index);
+    }
+    throw std::runtime_error("not an array");
+  }
 };
 
 enum class JsonError {
@@ -48,6 +60,7 @@ public:
   }
 
   auto parse_null() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (json_str.substr(pos, 4) == "null") {
       pos += 4;
       return Null{};
@@ -56,6 +69,7 @@ public:
   }
 
   auto parse_true() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (json_str.substr(pos, 4) == "true") {
       pos += 4;
       return true;
@@ -64,6 +78,7 @@ public:
   }
 
   auto parse_false() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (json_str.substr(pos, 5) == "false") {
       pos += 5;
       return false;
@@ -72,6 +87,7 @@ public:
   }
 
   auto parse_number() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (pos == json_str.size()) {
       return std::unexpected{JsonError::parse_invalid_value};
     }
@@ -94,8 +110,8 @@ public:
     }
 
     // handle interger
-    if (end_pos == json_str.size() || json_str[end_pos] != '.' || json_str[end_pos] != 'e' ||
-        json_str[end_pos] != 'E') {
+    if (end_pos == json_str.size() ||
+        (json_str[end_pos] != '.' && json_str[end_pos] != 'e' && json_str[end_pos] != 'E')) {
       try {
         auto number = std::stoll(std::string{json_str.substr(pos, end_pos - pos)});
         pos = end_pos;
@@ -139,6 +155,7 @@ public:
   }
 
   auto parse_string() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (pos == json_str.size() || json_str[pos] != '"') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
@@ -174,6 +191,7 @@ public:
   }
 
   auto parse_unicode() -> char {
+    parse_whitespace();
     if (pos + 4 >= json_str.size()) {
       return '\0';
     }
@@ -183,6 +201,7 @@ public:
   }
 
   auto parse_array() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (pos == json_str.size() || json_str[pos] != '[') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
@@ -198,6 +217,7 @@ public:
       if (pos < json_str.size() && json_str[pos] == ',') {
         ++pos;
       }
+      parse_whitespace();
     }
     if (pos == json_str.size() || json_str[pos] != ']') {
       return std::unexpected{JsonError::parse_invalid_value};
@@ -207,6 +227,7 @@ public:
   }
 
   auto parse_object() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (pos == json_str.size() || json_str[pos] != '{') {
       return std::unexpected{JsonError::parse_invalid_value};
     }
@@ -234,6 +255,7 @@ public:
       if (pos < json_str.size() && json_str[pos] == ',') {
         ++pos;
       }
+      parse_whitespace();
     }
     if (pos == json_str.size() || json_str[pos] != '}') {
       return std::unexpected{JsonError::parse_invalid_value};
@@ -243,6 +265,7 @@ public:
   }
 
   auto parse_value() -> std::expected<Value, JsonError> {
+    parse_whitespace();
     if (pos == json_str.size()) {
       return std::unexpected{JsonError::parse_expect_value};
     }
@@ -278,16 +301,16 @@ public:
   }
 };
 
-inline auto json_parse(std::string_view json_str) -> std::expected<Node, JsonError> {
+inline auto parse(std::string_view json_str) -> std::expected<Node, JsonError> {
   JsonParser parser{json_str};
   return parser.parse();
 }
 
 class JsonGenerator {
 public:
-  auto generate(const Node& node) -> std::string {
+  static auto generate(const Node& node) -> std::string {
     return std::visit(
-        [this](const auto& value) -> std::string {
+        [](const auto& value) -> std::string {
           if constexpr (std::is_same_v<std::decay_t<decltype(value)>, Null>) {
             return "null";
           } else if constexpr (std::is_same_v<std::decay_t<decltype(value)>, Boolean>) {
@@ -306,7 +329,7 @@ public:
         },
         node.value);
   }
-  auto generate_string(const String& str) -> std::string {
+  static auto generate_string(const String& str) -> std::string {
     std::string json_str;
     json_str += '"';
     static const auto escape_map = std::unordered_map<char, std::string>{
@@ -326,7 +349,7 @@ public:
     json_str += '"';
     return json_str;
   }
-  auto generate_array(const Array& array) -> std::string {
+  static auto generate_array(const Array& array) -> std::string {
     std::string json_str;
     json_str += '[';
     for (const auto& node : array) {
@@ -339,7 +362,7 @@ public:
     json_str += ']';
     return json_str;
   }
-  auto generate_object(const Object& object) -> std::string {
+  static auto generate_object(const Object& object) -> std::string {
     std::string json_str;
     json_str += '{';
     for (const auto& [key, node] : object) {
@@ -356,9 +379,14 @@ public:
   }
 };
 
-inline auto json_generate(const Node& node) -> std::string {
+inline auto generate(const Node& node) -> std::string {
   JsonGenerator generator;
   return generator.generate(node);
+}
+
+inline auto operator<<(auto& out, const Node& node) -> auto& {
+  out << JsonGenerator::generate(node);
+  return out;
 }
 
 }  // namespace json

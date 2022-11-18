@@ -330,8 +330,7 @@ public:
         node.value);
   }
   static auto generate_string(const String& str) -> std::string {
-    std::string json_str;
-    json_str += '"';
+    std::string json_str = "\"";
     static const auto escape_map = std::unordered_map<char, std::string>{
         {'"', "\\\""}, {'\\', "\\\\"}, {'/', "\\/"},  {'\b', "\\b"},
         {'\f', "\\f"}, {'\n', "\\n"},  {'\r', "\\r"}, {'\t', "\\t"}};
@@ -350,39 +349,30 @@ public:
     return json_str;
   }
   static auto generate_array(const Array& array) -> std::string {
-    std::string json_str;
-    json_str += '[';
+    std::string json_str = "[";
     for (const auto& node : array) {
       json_str += generate(node);
       json_str += ',';
     }
-    if (!array.empty()) {
-      json_str.pop_back();
-    }
+    if (!array.empty()) json_str.pop_back();
     json_str += ']';
     return json_str;
   }
   static auto generate_object(const Object& object) -> std::string {
-    std::string json_str;
-    json_str += '{';
+    std::string json_str = "{";
     for (const auto& [key, node] : object) {
       json_str += generate_string(key);
       json_str += ':';
       json_str += generate(node);
       json_str += ',';
     }
-    if (!object.empty()) {
-      json_str.pop_back();
-    }
+    if (!object.empty()) json_str.pop_back();
     json_str += '}';
     return json_str;
   }
 };
 
-inline auto generate(const Node& node) -> std::string {
-  JsonGenerator generator;
-  return generator.generate(node);
-}
+inline auto generate(const Node& node) -> std::string { return JsonGenerator::generate(node); }
 
 inline auto operator<<(auto& out, const Node& node) -> auto& {
   out << JsonGenerator::generate(node);
